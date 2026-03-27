@@ -43,10 +43,42 @@ def health():
 def generate_qr():
     url = f"{BASE_URL}/contact"
 
-    qr = qrcode.make(url)
+    # ---- QR PRO CONFIG ----
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_H,  # 🔴 CLAVE
+        box_size=12,
+        border=2,
+    )
+
+    qr.add_data(url)
+    qr.make(fit=True)
+
+    img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
+
+    # ---- INSERTAR LOGO ----
+    try:
+        logo_path = os.path.join(BASE_DIR, "assets", "Logo.png")
+        logo = Image.open(logo_path)
+
+        # 🔴 TAMAÑO DEL LOGO (AJUSTA AQUÍ)
+        qr_w, qr_h = img.size
+        logo_size = int(qr_w * 0.25)  # 25% del QR
+
+        logo = logo.resize((logo_size, logo_size))
+
+        # Posición centrada
+        x = (qr_w - logo_size) // 2
+        y = (qr_h - logo_size) // 2
+
+        # Si el logo tiene transparencia
+        img.paste(logo, (x, y), mask=logo if logo.mode == 'RGBA' else None)
+
+    except Exception as e:
+        print("Error inserting logo:", e)
 
     buffer = io.BytesIO()
-    qr.save(buffer, format="PNG")
+    img.save(buffer, format="PNG")
     buffer.seek(0)
 
     return StreamingResponse(buffer, media_type="image/png")
@@ -130,7 +162,7 @@ def contact_page():
             }}
 
             img {{
-                width: 160px;
+                width: 220px;
                 margin-bottom: 20px;
             }}
 

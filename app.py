@@ -7,26 +7,27 @@ import os
 import io
 import qrcode
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse, HTMLResponse
 from PIL import Image, ImageDraw, ImageFont
 
-# ==========================================
-# CONFIG
-# ==========================================
-
-BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8000")
-
 app = FastAPI()
 
+# ==========================================
+# CONFIG DINÁMICA (SOLUCIÓN AL 127.0.0.1)
+# ==========================================
+
+def get_base_url(request: Request):
+    return str(request.base_url).rstrip("/")
+
 # ---- DATOS ----
-COMPANY = "G2D Data Science Solutions"
-CCO = "Genaro García"
-EMAIL = "g2d.datascience@gmail.com"
-PHONE = "+52 722 636 9157"
+#COMPANY = "G2D Data Science Solutions"
+#CCO = "Genaro García"
+#EMAIL = "g2d.datascience@gmail.com"
+#PHONE = "+52 722 636 9157"
 
 # ==========================================
-# ROOT (IMPORTANTE PARA RENDER)
+# ROOT (HEALTH CHECK)
 # ==========================================
 
 @app.get("/")
@@ -34,12 +35,13 @@ def root():
     return {"status": "ok", "service": "G2D QR API"}
 
 # ==========================================
-# QR DINÁMICO
+# QR DINÁMICO (CORREGIDO)
 # ==========================================
 
 @app.get("/qr")
-def generate_qr():
-    url = f"{BASE_URL}/contact"
+def generate_qr(request: Request):
+    base_url = get_base_url(request)
+    url = f"{base_url}/contact"
 
     qr = qrcode.make(url)
 
@@ -50,7 +52,7 @@ def generate_qr():
     return StreamingResponse(buffer, media_type="image/png")
 
 # ==========================================
-# IMAGEN DINÁMICA PREMIUM
+# IMAGEN DINÁMICA (LOGO CORREGIDO)
 # ==========================================
 
 @app.get("/contact-image")
@@ -58,13 +60,16 @@ def contact_image():
     img = Image.new("RGB", (1000, 600), color="white")
     draw = ImageDraw.Draw(img)
 
-    # ---- LOGO CENTRADO ----
+    # ---- PATH ABSOLUTO PARA RENDER ----
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    logo_path = os.path.join(BASE_DIR, "assets", "logo.png")
+
     try:
-        logo = Image.open("assets/logo.png")
+        logo = Image.open(logo_path)
         logo = logo.resize((820, 620))
         img.paste(logo, ((1000 - 820) // 2, 20))
-    except:
-        pass
+    except Exception as e:
+        print("ERROR cargando logo:", e)
 
     # ---- FUENTES ----
     try:
@@ -95,7 +100,7 @@ def contact_image():
     return StreamingResponse(buffer, media_type="image/png")
 
 # ==========================================
-# LANDING PAGE PREMIUM
+# LANDING PAGE
 # ==========================================
 
 @app.get("/contact", response_class=HTMLResponse)
@@ -125,13 +130,6 @@ def contact_page():
                 display: block;
                 margin: 0 auto 20px auto;
             }}
-            h2 {{
-                margin: 10px 0;
-            }}
-            .subtitle {{
-                color: #555;
-                margin-bottom: 15px;
-            }}
             a {{
                 display: block;
                 margin: 10px auto;
@@ -150,7 +148,7 @@ def contact_page():
         <div class="card">
             <img src="/contact-image" />
             <h2>{COMPANY}</h2>
-            <div class="subtitle">CCO: {CCO}</div>
+            <div>CCO: {CCO}</div>
             <p>{EMAIL}</p>
             <p>{PHONE}</p>
             <a class="btn-call" href="tel:+527226369157">📞 Llamar</a>
@@ -163,7 +161,7 @@ def contact_page():
     return HTMLResponse(content=html)
 
 # ==========================================
-# VCARD DESCARGABLE
+# VCARD
 # ==========================================
 
 @app.get("/vcard")

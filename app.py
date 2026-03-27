@@ -90,8 +90,8 @@ def generate_qr():
 
 @app.get("/contact-image")
 def contact_image():
-    img_width = 800
-    img_height = 400
+    img_width = 1000
+    img_height = 600
 
     img = Image.new("RGB", (img_width, img_height), color="white")
 
@@ -172,7 +172,7 @@ def contact_page():
             }}
 
             img {{
-                width: 220px;
+                width: 280px;
                 margin-bottom: 20px;
             }}
 

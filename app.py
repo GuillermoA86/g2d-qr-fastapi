@@ -7,24 +7,23 @@ import os
 import io
 import qrcode
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.responses import StreamingResponse, HTMLResponse
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 
 app = FastAPI()
 
 # ==========================================
-# CONFIG DINÁMICA (SOLUCIÓN AL 127.0.0.1)
+# CONFIG
 # ==========================================
 
-def get_base_url(request: Request):
-    return str(request.base_url).rstrip("/")
+BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8000")
 
 # ---- DATOS ----
-#COMPANY = "G2D Data Science Solutions"
-#CCO = "Genaro García"
-#EMAIL = "g2d.datascience@gmail.com"
-#PHONE = "+52 722 636 9157"
+COMPANY = "G2D Data Science Solutions"
+CCO = "Genaro García"
+EMAIL = "g2d.datascience@gmail.com"
+PHONE = "+52 722 636 9157"
 
 # ==========================================
 # ROOT (HEALTH CHECK)
@@ -35,13 +34,12 @@ def root():
     return {"status": "ok", "service": "G2D QR API"}
 
 # ==========================================
-# QR DINÁMICO (CORREGIDO)
+# QR DINÁMICO
 # ==========================================
 
 @app.get("/qr")
-def generate_qr(request: Request):
-    base_url = get_base_url(request)
-    url = f"{base_url}/contact"
+def generate_qr():
+    url = f"{BASE_URL}/contact"
 
     qr = qrcode.make(url)
 
@@ -52,46 +50,28 @@ def generate_qr(request: Request):
     return StreamingResponse(buffer, media_type="image/png")
 
 # ==========================================
-# IMAGEN DINÁMICA (LOGO CORREGIDO)
+# IMAGEN (SOLO LOGO, SIN TEXTO)
 # ==========================================
 
 @app.get("/contact-image")
 def contact_image():
     img = Image.new("RGB", (1000, 600), color="white")
-    draw = ImageDraw.Draw(img)
 
-    # ---- PATH ABSOLUTO PARA RENDER ----
+    # ---- PATH ABSOLUTO ----
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     logo_path = os.path.join(BASE_DIR, "assets", "logo.png")
 
     try:
         logo = Image.open(logo_path)
-        logo = logo.resize((820, 620))
-        img.paste(logo, ((1000 - 820) // 2, 20))
+        logo = logo.resize((500, 500))
+
+        # centrado perfecto
+        x = (1000 - 500) // 2
+        y = (600 - 500) // 2
+
+        img.paste(logo, (x, y))
     except Exception as e:
         print("ERROR cargando logo:", e)
-
-    # ---- FUENTES ----
-    try:
-        font_title = ImageFont.truetype("arial.ttf", 44)
-        font_sub = ImageFont.truetype("arial.ttf", 30)
-        font_text = ImageFont.truetype("arial.ttf", 26)
-    except:
-        font_title = ImageFont.load_default()
-        font_sub = ImageFont.load_default()
-        font_text = ImageFont.load_default()
-
-    # ---- TEXTO CENTRADO ----
-    def center_text(text, y, font):
-        bbox = draw.textbbox((0, 0), text, font=font)
-        width = bbox[2] - bbox[0]
-        x = (1000 - width) // 2
-        draw.text((x, y), text, fill="black", font=font)
-
-    center_text(COMPANY, 360, font_title)
-    center_text(f"CCO: {CCO}", 420, font_sub)
-    center_text(EMAIL, 470, font_text)
-    center_text(PHONE, 510, font_text)
 
     buffer = io.BytesIO()
     img.save(buffer, format="PNG")
@@ -100,7 +80,7 @@ def contact_image():
     return StreamingResponse(buffer, media_type="image/png")
 
 # ==========================================
-# LANDING PAGE
+# LANDING PAGE (INFO LIMPIA)
 # ==========================================
 
 @app.get("/contact", response_class=HTMLResponse)
@@ -126,9 +106,16 @@ def contact_page():
                 box-shadow: 0 10px 30px rgba(0,0,0,0.3);
             }}
             img {{
-                width: 240px;
+                width: 200px;
                 display: block;
                 margin: 0 auto 20px auto;
+            }}
+            h2 {{
+                margin: 10px 0;
+            }}
+            .subtitle {{
+                color: #555;
+                margin-bottom: 15px;
             }}
             a {{
                 display: block;
@@ -148,7 +135,7 @@ def contact_page():
         <div class="card">
             <img src="/contact-image" />
             <h2>{COMPANY}</h2>
-            <div>CCO: {CCO}</div>
+            <div class="subtitle">CCO: {CCO}</div>
             <p>{EMAIL}</p>
             <p>{PHONE}</p>
             <a class="btn-call" href="tel:+527226369157">📞 Llamar</a>

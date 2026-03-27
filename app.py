@@ -59,7 +59,7 @@ def contact_image():
 
     # ---- PATH ABSOLUTO ----
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    logo_path = os.path.join(BASE_DIR, "assets", "logo.png")
+    logo_path = os.path.join(BASE_DIR, "assets", "Logo.png")
 
     try:
         logo = Image.open(logo_path)

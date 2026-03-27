@@ -3,24 +3,19 @@
 # Company: G2D Data Science Solutions
 # ==========================================
 
+import os
+import io
 import qrcode
-
-# URL dinámica (local)
-url = "http://127.0.0.1:8000/contact"
-
-qr = qrcode.make(url)
-qr.save("g2d_dynamic_qr.png")
-
-print("QR dinámico generado: g2d_dynamic_qr.png")
-
-# ==========================================
-# FastAPI APP
-# ==========================================
 
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse, HTMLResponse
 from PIL import Image, ImageDraw, ImageFont
-import io
+
+# ==========================================
+# CONFIG
+# ==========================================
+
+BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8000")
 
 app = FastAPI()
 
@@ -30,17 +25,44 @@ CCO = "Genaro García"
 EMAIL = "g2d.datascience@gmail.com"
 PHONE = "+52 722 636 9157"
 
-# ---- IMAGEN DINÁMICA PREMIUM ----
+# ==========================================
+# ROOT (IMPORTANTE PARA RENDER)
+# ==========================================
+
+@app.get("/")
+def root():
+    return {"status": "ok", "service": "G2D QR API"}
+
+# ==========================================
+# QR DINÁMICO
+# ==========================================
+
+@app.get("/qr")
+def generate_qr():
+    url = f"{BASE_URL}/contact"
+
+    qr = qrcode.make(url)
+
+    buffer = io.BytesIO()
+    qr.save(buffer, format="PNG")
+    buffer.seek(0)
+
+    return StreamingResponse(buffer, media_type="image/png")
+
+# ==========================================
+# IMAGEN DINÁMICA PREMIUM
+# ==========================================
+
 @app.get("/contact-image")
 def contact_image():
     img = Image.new("RGB", (1000, 600), color="white")
     draw = ImageDraw.Draw(img)
 
-    # ---- LOGO GRANDE CENTRADO ----
+    # ---- LOGO CENTRADO ----
     try:
         logo = Image.open("assets/logo.png")
-        logo = logo.resize((820, 620))  # MÁS GRANDE QUE EL TEXTO
-        img.paste(logo, ((600 - 320)//2, 20))  # centrado horizontal
+        logo = logo.resize((820, 620))
+        img.paste(logo, ((1000 - 820) // 2, 20))
     except:
         pass
 
@@ -56,15 +78,15 @@ def contact_image():
 
     # ---- TEXTO CENTRADO ----
     def center_text(text, y, font):
-        bbox = draw.textbbox((0,0), text, font=font)
+        bbox = draw.textbbox((0, 0), text, font=font)
         width = bbox[2] - bbox[0]
         x = (1000 - width) // 2
         draw.text((x, y), text, fill="black", font=font)
 
-#    center_text(COMPANY, 360, font_title)
-#    center_text(f"CCO: {CCO}", 420, font_sub)
-#    center_text(EMAIL, 470, font_text)
-#    center_text(PHONE, 510, font_text)
+    center_text(COMPANY, 360, font_title)
+    center_text(f"CCO: {CCO}", 420, font_sub)
+    center_text(EMAIL, 470, font_text)
+    center_text(PHONE, 510, font_text)
 
     buffer = io.BytesIO()
     img.save(buffer, format="PNG")
@@ -72,8 +94,10 @@ def contact_image():
 
     return StreamingResponse(buffer, media_type="image/png")
 
+# ==========================================
+# LANDING PAGE PREMIUM
+# ==========================================
 
-# ---- LANDING PREMIUM ----
 @app.get("/contact", response_class=HTMLResponse)
 def contact_page():
     html = f"""
@@ -138,8 +162,10 @@ def contact_page():
     """
     return HTMLResponse(content=html)
 
+# ==========================================
+# VCARD DESCARGABLE
+# ==========================================
 
-# ---- VCARD ----
 @app.get("/vcard")
 def vcard():
     vcard_data = f"""BEGIN:VCARD
@@ -156,5 +182,3 @@ END:VCARD"""
         media_type="text/vcard",
         headers={"Content-Disposition": "attachment; filename=contact.vcf"}
     )
-
-

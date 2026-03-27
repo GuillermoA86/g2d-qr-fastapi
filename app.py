@@ -1,5 +1,5 @@
 # ==========================================
-# Project: Dynamic QR Contact Landing (FastAPI PREMIUM UI)
+# Project: Dynamic QR Contact Landing (APP-LIKE)
 # Company: G2D Data Science Solutions
 # ==========================================
 
@@ -11,27 +11,29 @@ from fastapi import FastAPI
 from fastapi.responses import StreamingResponse, HTMLResponse
 from PIL import Image
 
-app = FastAPI()
-
 # ==========================================
 # CONFIG
 # ==========================================
 
 BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8000")
 
-# ---- DATOS ----
 COMPANY = "G2D Data Science Solutions"
 CCO = "Genaro García"
 EMAIL = "g2d.datascience@gmail.com"
 PHONE = "+52 722 636 9157"
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+app = FastAPI()
+
 # ==========================================
-# ROOT (HEALTH CHECK)
+# HEALTH CHECK
 # ==========================================
 
 @app.get("/")
-def root():
-    return {"status": "ok", "service": "G2D QR API"}
+def health():
+    return {"status": "ok", "service": COMPANY}
+
 
 # ==========================================
 # QR DINÁMICO
@@ -49,29 +51,27 @@ def generate_qr():
 
     return StreamingResponse(buffer, media_type="image/png")
 
+
 # ==========================================
-# IMAGEN (SOLO LOGO, SIN TEXTO)
+# IMAGEN (SOLO LOGO CENTRADO)
 # ==========================================
 
 @app.get("/contact-image")
 def contact_image():
-    img = Image.new("RGB", (1000, 600), color="white")
-
-    # ---- PATH ABSOLUTO ----
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    logo_path = os.path.join(BASE_DIR, "assets", "Logo.png")
+    img = Image.new("RGB", (800, 400), color="white")
 
     try:
+        logo_path = os.path.join(BASE_DIR, "assets", "Logo.png")
         logo = Image.open(logo_path)
-        logo = logo.resize((500, 500))
 
-        # centrado perfecto
-        x = (1000 - 500) // 2
-        y = (600 - 500) // 2
+        logo.thumbnail((500, 300))
+
+        x = (800 - logo.width) // 2
+        y = (400 - logo.height) // 2
 
         img.paste(logo, (x, y))
     except Exception as e:
-        print("ERROR cargando logo:", e)
+        print("Error loading logo:", e)
 
     buffer = io.BytesIO()
     img.save(buffer, format="PNG")
@@ -79,8 +79,9 @@ def contact_image():
 
     return StreamingResponse(buffer, media_type="image/png")
 
+
 # ==========================================
-# LANDING PAGE (INFO LIMPIA)
+# LANDING (APP-LIKE FULLSCREEN)
 # ==========================================
 
 @app.get("/contact", response_class=HTMLResponse)
@@ -89,63 +90,120 @@ def contact_page():
     <html>
     <head>
         <title>{COMPANY}</title>
+
+        <!-- MOBILE CRÍTICO -->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
         <style>
             body {{
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI';
-                text-align: center;
                 background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+                margin: 0;
+                padding: 0;
                 color: white;
+
+                /* APP-LIKE */
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }}
+
             .card {{
                 background: white;
                 color: black;
-                padding: 40px;
-                margin: 60px auto;
-                width: 420px;
-                border-radius: 20px;
-                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                width: 92%;
+                max-width: 420px;
+                min-height: 80vh;
+
+                border-radius: 24px;
+                box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+
+                padding: 30px;
+
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+
+                text-align: center;
             }}
+
             img {{
-                width: 200px;
-                display: block;
-                margin: 0 auto 20px auto;
+                width: 160px;
+                margin-bottom: 20px;
             }}
+
             h2 {{
                 margin: 10px 0;
+                font-size: 22px;
             }}
+
             .subtitle {{
                 color: #555;
-                margin-bottom: 15px;
+                margin-bottom: 10px;
             }}
+
+            p {{
+                margin: 4px 0;
+                font-size: 16px;
+            }}
+
+            .actions {{
+                width: 100%;
+                margin-top: 20px;
+            }}
+
             a {{
                 display: block;
-                margin: 10px auto;
-                padding: 10px;
-                width: 80%;
-                border-radius: 8px;
+                margin: 10px 0;
+                padding: 14px;
+                width: 100%;
+
+                border-radius: 12px;
                 text-decoration: none;
                 font-weight: bold;
+                font-size: 16px;
             }}
-            .btn-call {{ background: #28a745; color: white; }}
-            .btn-mail {{ background: #007bff; color: white; }}
-            .btn-save {{ background: #333; color: white; }}
+
+            .btn-call {{
+                background: #28a745;
+                color: white;
+            }}
+
+            .btn-mail {{
+                background: #007bff;
+                color: white;
+            }}
+
+            .btn-save {{
+                background: #333;
+                color: white;
+            }}
         </style>
     </head>
+
     <body>
         <div class="card">
             <img src="/contact-image" />
+
             <h2>{COMPANY}</h2>
             <div class="subtitle">CCO: {CCO}</div>
+
             <p>{EMAIL}</p>
             <p>{PHONE}</p>
-            <a class="btn-call" href="tel:+527226369157">📞 Llamar</a>
-            <a class="btn-mail" href="mailto:{EMAIL}">✉️ Email</a>
-            <a class="btn-save" href="/vcard">💾 Guardar contacto</a>
+
+            <div class="actions">
+                <a class="btn-call" href="tel:+527226369157">📞 Llamar</a>
+                <a class="btn-mail" href="mailto:{EMAIL}">✉️ Email</a>
+                <a class="btn-save" href="/vcard">💾 Guardar contacto</a>
+            </div>
         </div>
     </body>
     </html>
     """
     return HTMLResponse(content=html)
+
 
 # ==========================================
 # VCARD

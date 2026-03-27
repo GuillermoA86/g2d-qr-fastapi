@@ -90,18 +90,28 @@ def generate_qr():
 
 @app.get("/contact-image")
 def contact_image():
-    img = Image.new("RGB", (800, 400), color="white")
+    img_width = 800
+    img_height = 400
+
+    img = Image.new("RGB", (img_width, img_height), color="white")
 
     try:
         logo_path = os.path.join(BASE_DIR, "assets", "Logo.png")
         logo = Image.open(logo_path)
 
-        logo.thumbnail((500, 300))
+        # ---- ESCALA DINÁMICA (CLAVE) ----
+        max_height = int(img_height * 0.85)   # 85% del alto
+        ratio = max_height / logo.height
+        new_width = int(logo.width * ratio)
 
-        x = (800 - logo.width) // 2
-        y = (400 - logo.height) // 2
+        logo = logo.resize((new_width, max_height))
 
-        img.paste(logo, (x, y))
+        # ---- CENTRADO ----
+        x = (img_width - logo.width) // 2
+        y = (img_height - logo.height) // 2
+
+        img.paste(logo, (x, y), mask=logo if logo.mode == "RGBA" else None)
+
     except Exception as e:
         print("Error loading logo:", e)
 
